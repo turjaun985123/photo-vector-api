@@ -1,0 +1,57 @@
+name: Build and publish Render release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example v0.1.0
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-linux-x86_64:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build portable Linux binary
+        run: |
+          export CARGO_ENCODED_RUSTFLAGS="$(printf '%s\037' '-C' 'target-cpu=x86-64' '-C' 'llvm-args=-fp-contract=fast')"
+          cargo build --locked --release --bin rust-vision-engine
+
+      - name: Bundle binary and DINOv2 model
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/models
+          cp target/release/rust-vision-engine dist/rust-vision-engine
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://huggingface.co/sefaburak/dinov2-small-onnx/resolve/main/dinov2_vits14.onnx \
+            --output dist/models/dinov2_vits14.onnx
+          echo "4df36ef0716a8f17d984fc7546a3a5d670fda6911eb298592250cb9e26756063  dist/models/dinov2_vits14.onnx" \
+            | sha256sum --check --status
+          tar --create --gzip --file dist/photo-vector-api-linux-x86_64.tar.gz \
+            --directory dist rust-vision-engine models/dinov2_vits14.onnx
+          sha256sum dist/photo-vector-api-linux-x86_64.tar.gz > dist/photo-vector-api-linux-x86_64.tar.gz.sha256
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            dist/photo-vector-api-linux-x86_64.tar.gz \
+            dist/photo-vector-api-linux-x86_64.tar.gz.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$RELEASE_TAG" \
+            --generate-notes

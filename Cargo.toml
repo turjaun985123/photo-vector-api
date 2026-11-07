@@ -1,0 +1,82 @@
+[package]
+name = "rust-vision-engine"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+description = "Ultra-low-latency, zero-allocation SIMD & ONNX hardware-accelerated image recognition engine"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = ["ort-backend"]
+ort-backend = ["dep:ort"]
+cuda = ["ort/cuda"]
+tensorrt = ["ort/tensorrt"]
+coreml = ["ort/coreml"]
+directml = ["ort/directml"]
+openvino = ["ort/openvino"]
+
+[dependencies]
+# High-performance global allocator
+mimalloc = { version = "0.1.43", default-features = false }
+
+# Primary ONNX Runtime backend
+ort = { version = "2.0.0-rc.9", optional = true, features = ["ndarray", "half"] }
+
+# SIMD Image Decoding & Resizing
+zune-jpeg = "0.4.13"
+zune-core = "0.4.12"
+image = { version = "0.25.5", default-features = false, features = ["jpeg", "png", "webp"] }
+fast_image_resize = "4.2.1"
+
+# Math, Tensors & Half-Precision
+ndarray = "0.16.1"
+half = { version = "2.4.1", features = ["num-traits", "serde"] }
+wide = "0.7.30"
+
+# Concurrency, Lock-Free Pools & Memory Mapping
+tokio = { version = "1.41.1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "signal", "fs"] }
+rayon = "1.10.0"
+crossbeam-queue = "0.3.11"
+parking_lot = "0.12.3"
+memmap2 = "0.9.5"
+bytes = "1.8.0"
+
+# HTTP Server, CLI & Serialization
+axum = { version = "0.7.9", features = ["multipart", "macros"] }
+tower = { version = "0.5.1", features = ["limit", "timeout", "util"] }
+tower-http = { version = "0.6.2", features = ["trace", "cors", "limit"] }
+clap = { version = "4.5.21", features = ["derive", "env"] }
+serde = { version = "1.0.215", features = ["derive"] }
+serde_json = "1.0.133"
+rkyv = { version = "0.7.45", features = ["validation", "strict"] }
+walkdir = "2.5.0"
+uuid = { version = "1.29.0", features = ["v4"] }
+
+# Telemetry & Error Handling
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
+metrics = "0.24.0"
+metrics-exporter-prometheus = "0.16.0"
+thiserror = "2.0.3"
+anyhow = "1.0.93"
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+
+[[bench]]
+name = "pipeline_bench"
+harness = false
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"

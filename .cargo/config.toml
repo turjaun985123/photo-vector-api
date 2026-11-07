@@ -1,0 +1,7 @@
+[build]
+# Unlock native SIMD instruction sets (AVX2/AVX-512 on x86_64, NEON on AArch64)
+# and enable hardware Fused Multiply-Add (FMA) contraction.
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "llvm-args=-fp-contract=fast",
+]

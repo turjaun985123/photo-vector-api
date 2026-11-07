@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Product Vector Upload</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #18212f; background: #f4f6fa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { width: min(900px, calc(100% - 32px)); margin: 36px auto 64px; }
+    header { margin-bottom: 22px; }
+    h1 { font-size: clamp(1.65rem, 4vw, 2.25rem); margin: 0 0 8px; letter-spacing: -.03em; }
+    p { color: #586579; margin: 0; line-height: 1.5; }
+    .panel { background: #fff; border: 1px solid #e0e5ee; border-radius: 16px; padding: 22px; box-shadow: 0 8px 28px #18212f0b; }
+    form { display: grid; gap: 16px; }
+    label { display: grid; gap: 7px; color: #344258; font-size: .9rem; font-weight: 650; }
+    input, button { font: inherit; }
+    input { width: 100%; border: 1px solid #ccd4e0; border-radius: 9px; padding: 10px 11px; color: #18212f; background: #fff; }
+    button { border: 0; border-radius: 9px; background: #2259c7; color: #fff; font-weight: 700; padding: 12px 18px; min-height: 44px; cursor: pointer; }
+    button:hover { background: #1748ad; }
+    button:disabled { opacity: .55; cursor: wait; }
+    .hint { font-size: .82rem; color: #68758a; font-weight: 400; }
+    .status { min-height: 24px; margin-top: 15px; font-size: .92rem; color: #586579; }
+    .status.error { color: #b42318; }
+    pre { overflow: auto; max-height: 480px; padding: 14px; border-radius: 10px; background: #111827; color: #e5edf7; font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; }
+    #output { display: none; margin-top: 20px; }
+    #output.visible { display: block; }
+    @media (max-width: 620px) { main { margin-top: 20px; } .panel { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Index product photos</h1>
+      <p>Select as many product photos as needed. This server returns vector data only. Your main server should collect product details and associate them with the response UUID.</p>
+    </header>
+    <section class="panel">
+      <form id="product-form">
+        <label>Product photos <span class="hint">Select one or more JPG, PNG, or WebP images. Up to 10 MB each, 30 MB total.</span>
+          <input id="images" name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple required>
+        </label>
+        <button id="submit" type="submit">Generate vector indexing data</button>
+      </form>
+      <div id="status" class="status" role="status" aria-live="polite">Choose at least one photo.</div>
+      <section id="output" aria-label="Returned vector data">
+        <strong>Vector indexing response</strong>
+        <pre id="vectors"></pre>
+      </section>
+    </section>
+  </main>
+  <script>
+    const form = document.querySelector('#product-form');
+    const button = document.querySelector('#submit');
+    const statusBox = document.querySelector('#status');
+    const output = document.querySelector('#output');
+    const imageInput = document.querySelector('#images');
+    const apiToken = 'npc-image-index-dev-token';
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const images = [...imageInput.files];
+      if (images.length === 0) {
+        statusBox.className = 'status error';
+        statusBox.textContent = 'Select at least one photo.';
+        return;
+      }
+      if (images.some((image) => image.size > 10 * 1024 * 1024)) {
+        statusBox.className = 'status error';
+        statusBox.textContent = 'Each image must be under 10 MB.';
+        return;
+      }
+      const formData = new FormData();
+      for (const image of images) formData.append('images', image, image.name);
+      button.disabled = true;
+      button.textContent = 'Indexing photos…';
+      statusBox.className = 'status';
+      statusBox.textContent = 'Generating image vectors…';
+      output.classList.remove('visible');
+      try {
+        const response = await fetch('/v1/products', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiToken}` },
+          body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `Upload failed (${response.status})`);
+        document.querySelector('#vectors').textContent = JSON.stringify(data, null, 2);
+        output.classList.add('visible');
+        statusBox.textContent = `Request ${data.request_id}: processed ${images.length} photos and returned ${data.vectors.length} vectors.`;
+        form.reset();
+      } catch (error) {
+        statusBox.className = 'status error';
+        statusBox.textContent = error.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Generate vector indexing data';
+      }
+    });
+  </script>
+</body>
+</html>

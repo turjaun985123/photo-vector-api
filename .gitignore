@@ -1,0 +1,20 @@
+# Local datasets, generated indexes, and exports
+/All-Images/
+/All-Images.zip
+/All-Images*.rkyv
+/Photo-Database-50/
+/Photo-Database-50*.rkyv
+/outputs/
+/scan_results.ndjson
+/product_uploads/
+/product-catalog.json
+
+# Model binaries are downloaded into release bundles, not committed to Git
+/models/*.onnx
+
+# Rust build output and local runtime files
+/target/
+*.tmp
+*.log
+.crop-index.pid
+.index-source/
