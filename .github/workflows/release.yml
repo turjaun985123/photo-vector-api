@@ -36,12 +36,19 @@ jobs:
           mkdir -p dist/models
           cp target/release/rust-vision-engine dist/rust-vision-engine
           curl --fail --location --retry 5 --retry-all-errors \
+            https://github.com/microsoft/onnxruntime/releases/download/v1.23.2/onnxruntime-linux-x64-1.23.2.tgz \
+            --output /tmp/onnxruntime-linux-x64-1.23.2.tgz
+          echo "1fa4dcaef22f6f7d5cd81b28c2800414350c10116f5fdd46a2160082551c5f9b  /tmp/onnxruntime-linux-x64-1.23.2.tgz" \
+            | sha256sum --check --status
+          tar -xzf /tmp/onnxruntime-linux-x64-1.23.2.tgz -C /tmp
+          cp /tmp/onnxruntime-linux-x64-1.23.2/lib/libonnxruntime.so.1.23.2 dist/libonnxruntime.so
+          curl --fail --location --retry 5 --retry-all-errors \
             https://huggingface.co/sefaburak/dinov2-small-onnx/resolve/main/dinov2_vits14.onnx \
             --output dist/models/dinov2_vits14.onnx
           echo "4df36ef0716a8f17d984fc7546a3a5d670fda6911eb298592250cb9e26756063  dist/models/dinov2_vits14.onnx" \
             | sha256sum --check --status
           tar --create --gzip --file dist/photo-vector-api-linux-x86_64.tar.gz \
-            --directory dist rust-vision-engine models/dinov2_vits14.onnx
+            --directory dist rust-vision-engine libonnxruntime.so models/dinov2_vits14.onnx
           sha256sum dist/photo-vector-api-linux-x86_64.tar.gz > dist/photo-vector-api-linux-x86_64.tar.gz.sha256
 
       - name: Publish GitHub release

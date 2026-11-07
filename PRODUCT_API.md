@@ -24,3 +24,18 @@ Example response shape:
 ```
 
 Each vector contains 384 floating-point values. One uploaded photo returns 4 vectors; N uploaded photos return 4N vectors. A response includes the shared `request_id` and `vectors` array.
+
+## Using the vectors in your own search
+
+1. When a product is created, upload its photos here. In your own database, save each returned `vector_id` and `vector_indexing_data` with your product ID and photo ID. Keep the product and photo records in your database; this API does not know those IDs.
+2. When a customer submits a screenshot or crop, upload that image to `/v1/products` too. It returns four query vectors for its full image and crops.
+3. Search your vector database for the nearest stored vectors using cosine similarity (or dot product; vectors are normalized). For each result, follow your saved photo/product ID to retrieve the product details and image.
+4. Since each photo has four stored views, group matches by product/photo and keep the best similarity per product, or combine the scores. This avoids showing the same product four times.
+
+This server only makes embeddings. Its separate `/v1/search` route searches this server's own in-memory photo index; it does not connect to or search the API caller's database.
+
+Conceptual database row:
+
+```text
+product_id | photo_id | vector_id | embedding (384 floats)
+```
