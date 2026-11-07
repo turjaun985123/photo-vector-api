@@ -26,7 +26,7 @@ jobs:
 
       - name: Build portable Linux binary
         run: |
-          export CARGO_ENCODED_RUSTFLAGS="$(printf '%s\037' '-C' 'target-cpu=x86-64' '-C' 'llvm-args=-fp-contract=fast')"
+          export CARGO_ENCODED_RUSTFLAGS="$(printf '%s\037%s\037%s\037%s' '-C' 'target-cpu=x86-64' '-C' 'llvm-args=-fp-contract=fast')"
           cargo build --locked --release --bin rust-vision-engine
 
       - name: Bundle binary and DINOv2 model
